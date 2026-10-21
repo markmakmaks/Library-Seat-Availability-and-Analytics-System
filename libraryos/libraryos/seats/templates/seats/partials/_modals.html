@@ -1,0 +1,127 @@
+<!-- ============ MODALS & OVERLAYS ============ -->
+  <!-- Modal 1: Student Single Seat Rule Validation Error -->
+  <div id="modal-single-rule" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4 border border-rose-100">
+      <div class="w-12 h-12 bg-rose-100 rounded-full flex items-center justify-center text-rose-600 text-xl mx-auto">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+      </div>
+      <div class="text-center space-y-1">
+        <h3 class="font-bold text-navy-900 text-lg">Single Seat Booking Restriction</h3>
+        <p class="text-xs text-slate-600">To keep library resources fair for everyone, students are permitted <span class="font-bold text-slate-800">1 active or upcoming reservation</span> at a time.</p>
+      </div>
+      <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-900 space-y-1">
+        <span class="font-bold flex items-center space-x-1.5">
+          <i class="fa-solid fa-ticket text-amber-600"></i>
+          <span>Your Current Active Booking:</span>
+        </span>
+        <p id="single-rule-current-text" class="text-slate-700 pl-5 font-medium">Seat A15 • Zone A (Quiet Study) (11:00 - 13:00)</p>
+      </div>
+      <div class="flex flex-col space-y-2 pt-2">
+        <button onclick="cancelStudentCurrentAndBookNew()" class="w-full bg-rose-600 text-white font-semibold py-2 rounded-xl text-xs hover:bg-rose-700 transition-all">
+          Cancel Current Booking & Reserve New Seat
+        </button>
+        <button onclick="closeModal('modal-single-rule'); switchTab('student', 'bookings')" class="w-full bg-slate-100 text-slate-700 font-semibold py-2 rounded-xl text-xs hover:bg-slate-200">
+          View My Current Booking
+        </button>
+        <button onclick="closeModal('modal-single-rule')" class="text-xs text-slate-400 hover:text-slate-600 py-1">
+          Dismiss
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Student Seat Reservation Confirm Modal -->
+  <div id="modal-student-reserve" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
+      <div class="flex justify-between items-start border-b border-slate-100 pb-3">
+        <div>
+          <span class="text-[10px] font-bold text-royal-600 bg-sky-100 px-2 py-0.5 rounded uppercase">Reserve Seat</span>
+          <h3 id="modal-seat-title" class="font-bold text-lg text-navy-900">Seat A11</h3>
+        </div>
+        <button onclick="closeModal('modal-student-reserve')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+          <div>
+            <span class="text-slate-400 block">Zone:</span>
+            <span id="modal-seat-zone" class="font-semibold text-slate-700">Zone A - Quiet Study</span>
+          </div>
+          <div>
+            <span class="text-slate-400 block">Features:</span>
+            <span id="modal-seat-features" class="font-semibold text-slate-700">Power Outlet, Window</span>
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Select Time Duration:</label>
+          <select id="modal-time-duration" class="w-full border border-slate-300 rounded-lg p-2 font-medium focus:ring-2 focus:ring-royal-500">
+            <option value="1">1 Hour Session (Immediate)</option>
+            <option value="2" selected>2 Hours Session (Standard)</option>
+            <option value="3">3 Hours Session (Max Limit)</option>
+          </select>
+        </div>
+      </div>
+      <div class="pt-2 flex space-x-3">
+        <button onclick="closeModal('modal-student-reserve')" class="flex-1 bg-slate-100 text-slate-600 font-semibold py-2 rounded-xl text-xs hover:bg-slate-200">Cancel</button>
+        <button onclick="confirmStudentBooking()" class="flex-1 bg-royal-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-royal-700 shadow-md">Confirm Reservation</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 3: Professor Batch Booking Modal -->
+  <div id="modal-prof-batch" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="font-bold text-lg text-navy-900 flex items-center space-x-2">
+          <i class="fa-solid fa-users-rectangle text-royal-600"></i>
+          <span>Faculty Batch Reservation</span>
+        </h3>
+        <button onclick="closeModal('modal-prof-batch')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Selected Seats (<span id="prof-batch-count-text">0</span>):</label>
+          <div id="prof-batch-seats-list" class="flex flex-wrap gap-1.5 p-2 bg-slate-50 border border-slate-200 rounded-lg max-h-24 overflow-y-auto">
+            <!-- Seats tags injected -->
+          </div>
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Session / Class Title:</label>
+          <input type="text" id="prof-session-title-input" placeholder="e.g. CS101 Research Consultation" class="w-full border border-slate-300 rounded-lg p-2 font-medium focus:ring-2 focus:ring-royal-500">
+        </div>
+        <div>
+          <label class="block font-semibold text-slate-700 mb-1">Duration:</label>
+          <select id="prof-session-duration" class="w-full border border-slate-300 rounded-lg p-2 font-medium">
+            <option value="2">2 Hours</option>
+            <option value="4" selected>4 Hours (Standard Class)</option>
+            <option value="6">6 Hours (Full Day Workshop)</option>
+          </select>
+        </div>
+      </div>
+      <div class="pt-2 flex space-x-3">
+        <button onclick="closeModal('modal-prof-batch')" class="flex-1 bg-slate-100 text-slate-600 font-semibold py-2 rounded-xl text-xs hover:bg-slate-200">Cancel</button>
+        <button onclick="confirmProfBatchBooking()" class="flex-1 bg-royal-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-royal-700 shadow-md">Create Batch Reservation</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 4: Simulated QR Code Check-In -->
+  <div id="modal-qr-checkin" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
+      <h3 class="font-bold text-navy-900 text-base">Scan QR at Seat Desk</h3>
+      <p class="text-xs text-slate-500">Align your camera or tap simulated scan to verify physical presence at your reserved desk.</p>
+      <div class="bg-slate-900 p-4 rounded-2xl mx-auto w-48 h-48 flex flex-col items-center justify-center text-white relative overflow-hidden group">
+        <i class="fa-solid fa-qrcode text-8xl text-sky-400 opacity-90"></i>
+        <div class="absolute inset-x-0 top-0 h-1 bg-sky-400 shadow-[0_0_15px_#38bdf8] animate-pulse"></div>
+      </div>
+      <p class="text-[11px] text-slate-400">Seat Sensor ID: <span class="font-mono text-slate-700">QR-LIB-2026-ACTIVE</span></p>
+      <div class="flex flex-col space-y-2">
+        <button onclick="executeQRCheckIn()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-700 shadow-md flex items-center justify-center space-x-2">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Simulate Successful Scan Check-In</span>
+        </button>
+        <button onclick="closeModal('modal-qr-checkin')" class="text-xs text-slate-400 hover:text-slate-600 py-1">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  

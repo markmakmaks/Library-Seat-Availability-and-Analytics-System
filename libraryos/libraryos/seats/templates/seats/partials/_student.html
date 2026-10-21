@@ -1,0 +1,43 @@
+<!-- ============ STUDENT VIEW ============ -->
+    <section id="view-student" class="{% if role != 'student' %}hidden {% endif %}space-y-6">
+      <!-- Navigation Tabs -->
+      <div class="flex border-b border-slate-200 space-x-6 text-sm font-medium">
+        <button onclick="switchTab('student', 'find')" id="student-tab-find" class="pb-3 tab-active flex items-center space-x-2">
+          <i class="fa-solid fa-magnifying-glass-location"></i><span>Find & Book a Seat</span>
+        </button>
+        <button onclick="switchTab('student', 'bookings')" id="student-tab-bookings" class="pb-3 text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+          <i class="fa-solid fa-ticket"></i><span>My Active Booking (<span id="student-booking-badge">1</span>)</span>
+        </button>
+      </div>
+
+      <!-- Student Tab 1: Find & Book -->
+      <div id="student-panel-find" class="space-y-4">
+        <!-- Zone Filters -->
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-sm">
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button onclick="filterStudentZone('all')" id="zone-filter-all" class="px-3 py-1.5 rounded-lg font-semibold bg-royal-600 text-white">All Zones</button>
+            {% for z in zones %}
+            <button onclick="filterStudentZone('{{ z.id }}')" id="zone-filter-{{ z.id }}" class="px-3 py-1.5 rounded-lg font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200">{{ z.id }} ({{ z.title }})</button>
+            {% endfor %}
+          </div>
+          <div class="text-xs text-slate-500 flex items-center space-x-3">
+            <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded bg-emerald-500"></span><span>Free</span></span>
+            <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded bg-rose-500"></span><span>Occupied</span></span>
+            <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded bg-amber-500"></span><span>Reserved</span></span>
+          </div>
+        </div>
+        <!-- Seat Grid Display -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="student-seatmap-grid">
+          <!-- Rendered by JS -->
+        </div>
+      </div>
+
+      <!-- Student Tab 2: My Bookings -->
+      <div id="student-panel-bookings" class="hidden space-y-4">
+        <div id="student-active-booking-container" class="space-y-4">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+    </section>
+
+  

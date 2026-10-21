@@ -1,0 +1,7 @@
+body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+.tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: 600; }
+.seat-btn { transition: all 0.2s ease-in-out; }
+.seat-btn:hover { transform: scale(1.05); }
+.custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }

@@ -1,0 +1,27 @@
+{% extends "seats/base.html" %}
+{% load static %}
+
+{% block content %}
+  {% include "seats/partials/_header.html" %}
+  {% include "seats/partials/_banner.html" %}
+
+  <!-- MAIN CONTENT CONTAINER -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    {% include "seats/partials/_admin.html" %}
+    {% include "seats/partials/_professor.html" %}
+    {% include "seats/partials/_student.html" %}
+  </main>
+
+  {% include "seats/partials/_footer.html" %}
+  {% include "seats/partials/_modals.html" %}
+
+  <!-- REAL-TIME TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+  {{ state|json_script:"initial-state" }}
+  {{ config|json_script:"app-config" }}
+{% endblock %}
+
+{% block scripts %}
+  <script src="{% static 'seats/js/app.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,49 @@
+<!-- ============ PROFESSOR VIEW ============ -->
+    <section id="view-professor" class="{% if role != 'professor' %}hidden {% endif %}space-y-6">
+      <div class="bg-gradient-to-r from-royal-700 to-navy-800 text-white rounded-2xl p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center space-x-2">
+            <span class="bg-amber-400 text-navy-900 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Faculty Priority Access</span>
+            <h3 class="font-bold text-lg">Multi-Seat & Group Reservation Privileges</h3>
+          </div>
+          <p class="text-xs text-sky-100">Professors may batch-reserve multiple seats across zones for research, consultations, or laboratory classes up to 7 days in advance.</p>
+        </div>
+        <button onclick="openBatchModal()" class="bg-white text-navy-900 hover:bg-sky-50 font-bold px-4 py-2 rounded-xl text-xs shadow transition-all flex items-center space-x-2">
+          <i class="fa-solid fa-layer-group text-royal-600"></i>
+          <span>Batch Reserve Selected Seats (<span id="prof-selected-count">0</span>)</span>
+        </button>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="flex border-b border-slate-200 space-x-6 text-sm font-medium">
+        <button onclick="switchTab('prof', 'reserve')" id="prof-tab-reserve" class="pb-3 tab-active flex items-center space-x-2">
+          <i class="fa-solid fa-chair"></i><span>Reserve Spaces (Multi-Select)</span>
+        </button>
+        <button onclick="switchTab('prof', 'sessions')" id="prof-tab-sessions" class="pb-3 text-slate-500 hover:text-slate-700 flex items-center space-x-2">
+          <i class="fa-solid fa-users-rectangle"></i><span>My Faculty Sessions (<span id="prof-session-count">2</span>)</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: Reserve Spaces Grid -->
+      <div id="prof-panel-reserve" class="space-y-4">
+        <div class="bg-sky-50 border border-sky-200 p-3.5 rounded-xl text-xs text-sky-900 flex items-center justify-between">
+          <div class="flex items-center space-x-2">
+            <i class="fa-solid fa-info-circle text-royal-600 text-base"></i>
+            <span>Click on multiple green seats to select them for a group reservation. Click "Batch Reserve" when finished.</span>
+          </div>
+          <button onclick="clearProfSelections()" class="text-xs font-semibold text-royal-600 hover:underline">Clear Selection</button>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="prof-seatmap-grid">
+          <!-- Dynamic Grid Rendered via JS -->
+        </div>
+      </div>
+
+      <!-- Tab 2: My Faculty Sessions -->
+      <div id="prof-panel-sessions" class="hidden space-y-4">
+        <div id="prof-sessions-container" class="space-y-3">
+          <!-- Dynamically rendered -->
+        </div>
+      </div>
+    </section>
+
+    

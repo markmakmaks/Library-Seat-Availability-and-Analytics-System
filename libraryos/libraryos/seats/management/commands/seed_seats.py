@@ -3,7 +3,7 @@ import random
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from seats.demo_users import DEMO_USERS
+from django.contrib.auth.models import User
 from seats.models import Reservation, Seat, Zone
 
 ZONES = [
@@ -49,13 +49,16 @@ class Command(BaseCommand):
         Seat.objects.bulk_create(seat_rows)
         seats = Seat.objects.in_bulk(field_name="seat_id")
 
-        student = DEMO_USERS["student"]["name"]
-        professor = DEMO_USERS["professor"]["name"]
+        student_user = User.objects.filter(username="Student").first()
+        professor_user = User.objects.filter(username="Professor").first()
+        student = student_user.profile.full_name if student_user else "Alex Martinez"
+        professor = professor_user.profile.full_name if professor_user else "Dr. Patricia Hall"
         Status, Role = Reservation.Status, Reservation.Role
 
         def book(seat_id, user, role, status, start=None, end=None, title=""):
+            owner = {student: student_user, professor: professor_user}.get(user)
             Reservation.objects.create(
-                seat=seats[seat_id], user_name=user, role=role, status=status,
+                seat=seats[seat_id], user=owner, user_name=user, role=role, status=status,
                 start_hour=start, end_hour=end, title=title,
             )
 

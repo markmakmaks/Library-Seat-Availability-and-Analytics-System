@@ -1,0 +1,65 @@
+{% extends "seats/base.html" %}
+{% block title %}Account Approvals - LibraryOS{% endblock %}
+{% block content %}
+  {% include "seats/auth/_shell_top.html" %}
+  <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-6 space-y-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-xl font-bold text-navy-900">Account approvals</h1>
+        <p class="text-sm text-slate-500">Signed in as {{ current_user.name }} ({{ current_user.roleText }})</p>
+      </div>
+      <a href="{% url 'seats:admin-dashboard' %}" class="text-sm font-semibold text-royal-600 hover:underline">&larr; Back to dashboard</a>
+    </div>
+
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-sm">
+      <h2 class="px-5 py-3 border-b border-slate-200 font-semibold text-slate-800">Pending ({{ pending|length }})</h2>
+      {% for p in pending %}
+        <div class="px-5 py-4 border-b border-slate-100 last:border-0 flex flex-wrap items-center justify-between gap-3">
+          <div class="text-sm">
+            <div class="font-semibold text-slate-800">{{ p.full_name }}
+              <span class="ml-1 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-800 border border-sky-200">{{ p.get_role_display }}</span>
+            </div>
+            <div class="text-slate-500">{{ p.user.username }} &bull; {{ p.user.email }} &bull; ID: {{ p.id_number }}</div>
+            <div class="text-slate-500">
+              {% if p.role == "student" %}{{ p.course }} &bull; {{ p.year_level }}{% else %}{{ p.department }}{% endif %}
+            </div>
+          </div>
+          <form method="post" class="flex space-x-2">
+            {% csrf_token %}
+            <input type="hidden" name="profile_id" value="{{ p.pk }}">
+            <button name="action" value="approve" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold">Approve</button>
+            <button name="action" value="reject" class="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold">Reject</button>
+          </form>
+        </div>
+      {% empty %}
+        <p class="px-5 py-6 text-sm text-slate-500">No accounts are waiting for approval.</p>
+      {% endfor %}
+    </section>
+
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-sm">
+      <h2 class="px-5 py-3 border-b border-slate-200 font-semibold text-slate-800">Recently reviewed</h2>
+      {% for p in reviewed %}
+        <div class="px-5 py-3 border-b border-slate-100 last:border-0 flex flex-wrap items-center justify-between gap-3 text-sm">
+          <div>
+            <span class="font-medium text-slate-800">{{ p.full_name }}</span>
+            <span class="text-slate-500">&bull; {{ p.user.username }} &bull; {{ p.get_role_display }}</span>
+          </div>
+          <div class="flex items-center space-x-3">
+            <span class="text-xs font-bold {% if p.status == 'approved' %}text-emerald-700{% else %}text-rose-700{% endif %}">{{ p.get_status_display }}</span>
+            <form method="post">
+              {% csrf_token %}
+              <input type="hidden" name="profile_id" value="{{ p.pk }}">
+              {% if p.status == "approved" %}
+                <button name="action" value="reject" class="text-xs font-semibold text-rose-600 hover:underline">Revoke</button>
+              {% else %}
+                <button name="action" value="approve" class="text-xs font-semibold text-emerald-700 hover:underline">Approve</button>
+              {% endif %}
+            </form>
+          </div>
+        </div>
+      {% empty %}
+        <p class="px-5 py-6 text-sm text-slate-500">Nothing reviewed yet.</p>
+      {% endfor %}
+    </section>
+  </main>
+{% endblock %}

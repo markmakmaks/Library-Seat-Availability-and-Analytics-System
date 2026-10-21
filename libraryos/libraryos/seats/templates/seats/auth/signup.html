@@ -1,0 +1,73 @@
+{% extends "seats/base.html" %}
+{% block title %}Sign Up - LibraryOS{% endblock %}
+{% block content %}
+  {% include "seats/auth/_shell_top.html" %}
+  <main class="flex-grow flex items-start justify-center px-4 py-10">
+    <div class="w-full max-w-2xl bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8">
+      <h1 class="text-xl font-bold text-navy-900">Create an account</h1>
+      <p class="text-sm text-slate-500 mt-1">New accounts must be approved by an Admin before you can sign in.</p>
+
+      <div class="mt-5 inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+        <button type="button" data-role="student" class="role-tab px-4 py-1.5 rounded-lg text-sm font-semibold">Student</button>
+        <button type="button" data-role="professor" class="role-tab px-4 py-1.5 rounded-lg text-sm font-semibold">Professor</button>
+      </div>
+
+      <form method="post" class="mt-5" novalidate>
+        {% csrf_token %}
+        {{ form.role }}
+        {% if form.non_field_errors %}
+          <div class="mb-3 p-3 rounded-lg text-sm bg-rose-50 border border-rose-200 text-rose-800">{{ form.non_field_errors }}</div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {% for f in form.name_fields %}
+            <div>
+              <label for="{{ f.id_for_label }}" class="block text-xs font-semibold text-slate-600 mb-1">{{ f.label }}{% if not f.field.required %} <span class="font-normal text-slate-400">(optional)</span>{% endif %}</label>
+              {{ f }}
+              {% for e in f.errors %}<p class="text-xs text-rose-600 mt-1">{{ e }}</p>{% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+          {% for f in form.other_fields %}
+            <div {% if f.name == "year_level" or f.name == "course" %}data-only="student"{% elif f.name == "department" %}data-only="professor"{% endif %}>
+              <label for="{{ f.id_for_label }}" class="block text-xs font-semibold text-slate-600 mb-1">
+                {% if f.name == "id_number" %}<span class="id-label">Student ID</span>{% else %}{{ f.label }}{% endif %}
+              </label>
+              {{ f }}
+              {% for e in f.errors %}<p class="text-xs text-rose-600 mt-1">{{ e }}</p>{% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+
+        <button type="submit" class="mt-6 w-full bg-royal-600 hover:bg-royal-700 text-white font-semibold text-sm py-2.5 rounded-lg">Submit registration</button>
+      </form>
+
+      <p class="text-sm text-slate-500 mt-5 text-center">
+        Already approved? <a href="{% url 'seats:login' %}" class="text-royal-600 font-semibold hover:underline">Sign in</a>
+      </p>
+    </div>
+  </main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const roleInput = document.getElementById('{{ form.role.id_for_label }}');
+  function setRole(role) {
+    roleInput.value = role;
+    document.querySelectorAll('.role-tab').forEach(b => {
+      b.className = 'role-tab px-4 py-1.5 rounded-lg text-sm font-semibold ' +
+        (b.dataset.role === role ? 'bg-royal-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-200/60');
+    });
+    document.querySelectorAll('[data-only]').forEach(el => {
+      const show = el.dataset.only === role;
+      el.classList.toggle('hidden', !show);
+      el.querySelectorAll('input,select').forEach(i => { i.disabled = !show; });
+    });
+    document.querySelector('.id-label').textContent = role === 'professor' ? 'Professor ID' : 'Student ID';
+  }
+  document.querySelectorAll('.role-tab').forEach(b => b.addEventListener('click', () => setRole(b.dataset.role)));
+  setRole(roleInput.value === 'professor' ? 'professor' : 'student');
+</script>
+{% endblock %}

@@ -35,7 +35,7 @@ function findSeat(seatId) {
 
 function currentStudentBooking() {
   return seats.find(s =>
-    s.role === 'student' && s.user === USERS.student.name && (s.status === 'reserved' || s.status === 'occupied')
+    s.role === 'student' && s.mine && (s.status === 'reserved' || s.status === 'occupied')
   );
 }
 
@@ -108,23 +108,8 @@ function updateTimeDisplay() {
 }
 
 /* ------------------------------------------------------------ roles & tabs */
-async function switchRole(role) {
-  setRoleUI(role);
-  const res = await callApi(CONFIG.urls.role, { role });
-  if (!res || !res.ok) setRoleUI(state.role);   // roll back if the server refused
-}
-
 function setRoleUI(role) {
   currentRole = role;
-  ['admin', 'professor', 'student'].forEach(r => {
-    const btn = document.getElementById(`role-btn-${r}`);
-    if (r === role) {
-      btn.className = "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center space-x-1.5 bg-royal-600 text-white shadow-sm";
-    } else {
-      btn.className = "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center space-x-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-200/60";
-    }
-  });
-
   const u = USERS[role];
   document.getElementById('user-name').innerText = u.name;
   document.getElementById('user-role-badge').innerText = u.roleText;
@@ -186,8 +171,10 @@ function updateKPIs() {
   const res = seats.filter(s => s.status === 'reserved').length;
   const pct = n => total ? Math.round((n / total) * 100) : 0;
 
-  document.getElementById('global-available-count').innerText = avail;
-  document.getElementById('global-total-count').innerText = total;
+  const globalAvail = document.getElementById('global-available-count');
+  const globalTotal = document.getElementById('global-total-count');
+  if (globalAvail) globalAvail.innerText = avail;
+  if (globalTotal) globalTotal.innerText = total;
   document.getElementById('admin-kpi-available').innerText = avail;
   document.getElementById('admin-kpi-occupied').innerText = occ;
   document.getElementById('admin-kpi-reserved').innerText = res;
@@ -402,7 +389,7 @@ async function confirmProfBatchBooking() {
 
 function renderProfSessions() {
   const container = document.getElementById('prof-sessions-container');
-  const profSeats = seats.filter(s => s.role === 'professor' && s.user === USERS.professor.name);
+  const profSeats = seats.filter(s => s.role === 'professor' && s.mine);
   document.getElementById('prof-session-count').innerText = profSeats.length;
 
   if (profSeats.length === 0) {

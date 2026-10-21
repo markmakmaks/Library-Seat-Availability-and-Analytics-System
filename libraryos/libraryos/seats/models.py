@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
@@ -77,6 +78,9 @@ class Reservation(models.Model):
         PROFESSOR = "professor", "Professor"
 
     seat = models.ForeignKey(Seat, on_delete=models.CASCADE, related_name="reservations")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="reservations"
+    )
     user_name = models.CharField(max_length=120)
     role = models.CharField(max_length=20, choices=Role.choices)
     title = models.CharField(max_length=100, blank=True, help_text="Session / class title (faculty batches)")
@@ -108,3 +112,71 @@ class Reservation(models.Model):
             return "Active Session"
         label = f"{self.start_hour:02d}:00 - {self.end_hour % 24:02d}:00"
         return f"{label} ({self.title})" if self.title else label
+
+
+class Profile(models.Model):
+    """Role and registration details for a login account. Created at sign-up, approved by an Admin."""
+
+    class Role(models.TextChoices):
+        ADMIN = "admin", "Admin"
+        PROFESSOR = "professor", "Professor"
+        STUDENT = "student", "Student"
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending approval"
+        APPROVED = "approved", "Approved"
+        REJECTED = "rejected", "Rejected"
+
+    class YearLevel(models.TextChoices):
+        FIRST = "1st Year", "1st Year"
+        SECOND = "2nd Year", "2nd Year"
+        THIRD = "3rd Year", "3rd Year"
+        FOURTH = "4th Year", "4th Year"
+        FIFTH = "5th Year", "5th Year"
+
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
+    role = models.CharField(max_length=20, choices=Role.choices)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    last_name = models.CharField(max_length=80)
+    first_name = models.CharField(max_length=80)
+    middle_name = models.CharField(max_length=80, blank=True)
+    year_level = models.CharField(max_length=20, choices=YearLevel.choices, blank=True)
+    course = models.CharField(max_length=120, blank=True)
+    department = models.CharField(max_length=120, blank=True)
+    id_number = models.CharField(max_length=30, blank=True, help_text="Student ID or Professor ID")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["role", "id_number"],
+                condition=~Q(id_number=""),
+                name="unique_id_number_per_role",
+            ),
+        ]
+
+    def __str__(self):
+        return f"{self.user.username} ({self.role}, {self.status})"
+
+    @property
+    def full_name(self):
+        parts = [self.first_name, self.middle_name, self.last_name]
+        return " ".join(p for p in parts if p)
+
+    @property
+    def initials(self):
+        letters = (self.first_name[:1] + self.last_name[:1]).upper()
+        return letters or self.user.username[:2].upper()
+
+    @property
+    def role_text(self):
+        return {"admin": "System Admin", "professor": "Faculty Professor", "student": "Student"}[self.role]
+
+    @property
+    def subtitle(self):
+        if self.role == self.Role.STUDENT:
+            return f"{self.course} • {self.year_level} • Student ID: {self.id_number}"
+        if self.role == self.Role.PROFESSOR:
+            return f"{self.department} Department • Professor ID: {self.id_number}"
+        return "Main Campus Central Library High Authority"

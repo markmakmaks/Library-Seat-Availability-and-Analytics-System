@@ -1,0 +1,34 @@
+{% extends "seats/base.html" %}
+{% block title %}Sign In - LibraryOS{% endblock %}
+{% block content %}
+  {% include "seats/auth/_shell_top.html" %}
+  <main class="flex-grow flex items-start justify-center px-4 py-10">
+    <div class="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-sm p-6 sm:p-8">
+      <h1 class="text-xl font-bold text-navy-900">Sign in</h1>
+      <p class="text-sm text-slate-500 mt-1">Use your LibraryOS account to open your dashboard.</p>
+
+      {% if error %}
+        <div class="mt-4 p-3 rounded-lg text-sm bg-rose-50 border border-rose-200 text-rose-800">{{ error }}</div>
+      {% endif %}
+
+      <form method="post" class="mt-5 space-y-4">
+        {% csrf_token %}
+        <div>
+          <label for="username" class="block text-xs font-semibold text-slate-600 mb-1">Username</label>
+          <input id="username" name="username" value="{{ username }}" required autofocus autocomplete="username"
+                 class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-royal-600">
+        </div>
+        <div>
+          <label for="password" class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+          <input id="password" name="password" type="password" required autocomplete="current-password"
+                 class="w-full px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-royal-600">
+        </div>
+        <button type="submit" class="w-full bg-royal-600 hover:bg-royal-700 text-white font-semibold text-sm py-2.5 rounded-lg">Sign in</button>
+      </form>
+
+      <p class="text-sm text-slate-500 mt-5 text-center">
+        No account yet? <a href="{% url 'seats:signup' %}" class="text-royal-600 font-semibold hover:underline">Sign up</a>
+      </p>
+    </div>
+  </main>
+{% endblock %}

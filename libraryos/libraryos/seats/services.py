@@ -8,7 +8,6 @@ from django.db import IntegrityError, transaction
 from django.db.models import Count, Prefetch
 from django.utils import timezone
 
-from .demo_users import DEMO_USERS
 from .models import OPEN_STATUSES, Reservation, Seat, Zone
 
 STUDENT_DURATIONS = (1, 2, 3)
@@ -81,14 +80,13 @@ def _close(reservation):
 
 # ----------------------------------------------------------------- actions
 @transaction.atomic
-def reserve_seat_for_student(seat_id, duration, start_hour=None):
-    user = DEMO_USERS["student"]
+def reserve_seat_for_student(user, seat_id, duration, start_hour=None):
     duration = _parse_choice(duration, STUDENT_DURATIONS, "duration")
     seat = _lock_seat(seat_id)
 
     existing = (
         Reservation.objects.select_related("seat__zone")
-        .filter(role=Role.STUDENT, user_name=user["name"], status__in=OPEN_STATUSES)
+        .filter(role=Role.STUDENT, user=user, status__in=OPEN_STATUSES)
         .first()
     )
     if existing:
@@ -109,7 +107,8 @@ def reserve_seat_for_student(seat_id, duration, start_hour=None):
     start = _clean_start_hour(start_hour)
     _create_reservation(
         seat=seat,
-        user_name=user["name"],
+        user=user,
+        user_name=user.profile.full_name,
         role=Role.STUDENT,
         start_hour=start,
         end_hour=start + duration,
@@ -119,8 +118,7 @@ def reserve_seat_for_student(seat_id, duration, start_hour=None):
 
 
 @transaction.atomic
-def batch_reserve_for_professor(seat_ids, title, duration, start_hour=None):
-    user = DEMO_USERS["professor"]
+def batch_reserve_for_professor(user, seat_ids, title, duration, start_hour=None):
     if not isinstance(seat_ids, list) or not seat_ids:
         raise BookingError("Please select at least one available seat first.", code="invalid_input")
     seat_ids = list(dict.fromkeys(str(s) for s in seat_ids))
@@ -139,7 +137,8 @@ def batch_reserve_for_professor(seat_ids, title, duration, start_hour=None):
         _ensure_available(seat)
         _create_reservation(
             seat=seat,
-            user_name=user["name"],
+            user=user,
+            user_name=user.profile.full_name,
             role=Role.PROFESSOR,
             title=title,
             start_hour=start,
@@ -150,7 +149,7 @@ def batch_reserve_for_professor(seat_ids, title, duration, start_hour=None):
 
 
 @transaction.atomic
-def release_seat(role, seat_id):
+def release_seat(role, user, seat_id):
     seat = _lock_seat(seat_id)
     reservation = seat.current_reservation
 
@@ -161,8 +160,7 @@ def release_seat(role, seat_id):
             seat.is_maintenance = False
             seat.save(update_fields=["is_maintenance"])
     else:
-        user = DEMO_USERS[role]
-        if reservation is None or reservation.user_name != user["name"] or reservation.role != role:
+        if reservation is None or reservation.user_id != user.id or reservation.role != role:
             raise BookingError("You can only release your own reservations.", status=403, code="forbidden")
 
     if reservation is not None:
@@ -187,11 +185,10 @@ def toggle_maintenance(seat_id):
 
 
 @transaction.atomic
-def check_in(seat_id):
-    user = DEMO_USERS["student"]
+def check_in(user, seat_id):
     seat = _lock_seat(seat_id)
     reservation = seat.current_reservation
-    if reservation is None or reservation.role != Role.STUDENT or reservation.user_name != user["name"]:
+    if reservation is None or reservation.role != Role.STUDENT or reservation.user_id != user.id:
         raise BookingError("That seat is not reserved by you.", status=403, code="forbidden")
     if reservation.status == Status.ACTIVE:
         raise BookingError("You are already checked in.", status=409, code="already_checked_in")
@@ -203,7 +200,18 @@ def check_in(seat_id):
 
 
 # ------------------------------------------------------------ serialization
-def _serialize_seat(seat):
+def identity(user):
+    """Display details of the logged-in account, shown in the dashboard banner."""
+    profile = user.profile
+    return {
+        "name": profile.full_name,
+        "roleText": profile.role_text,
+        "avatar": profile.initials,
+        "sub": profile.subtitle,
+    }
+
+
+def _serialize_seat(seat, user):
     reservation = seat.current_reservation
     return {
         "id": seat.seat_id,
@@ -212,6 +220,7 @@ def _serialize_seat(seat):
         "number": seat.number,
         "status": seat.status,
         "user": reservation.user_name if reservation else None,
+        "mine": bool(reservation and reservation.user_id == user.id),
         "role": reservation.role if reservation else None,
         "time": reservation.time_display if reservation else None,
         "features": seat.features,
@@ -223,7 +232,7 @@ def _pct(part, whole):
     return round(part / whole * 100) if whole else 0
 
 
-def build_state(role):
+def build_state(role, user):
     """Everything the front end needs to render all three role views."""
     zones = [
         {"id": z.code, "name": z.name, "title": z.title, "desc": z.description, "total": z.seat_total}
@@ -240,7 +249,7 @@ def build_state(role):
         )
         .order_by("zone__code", "number")
     )
-    seats = [_serialize_seat(s) for s in seat_qs]
+    seats = [_serialize_seat(s, user) for s in seat_qs]
 
     total = len(seats)
     available = sum(1 for s in seats if s["status"] == "available")
@@ -254,4 +263,4 @@ def build_state(role):
         "availablePct": _pct(available, total),
         "occupiedPct": _pct(occupied, total),
     }
-    return {"role": role, "users": DEMO_USERS, "zones": zones, "seats": seats, "summary": summary}
+    return {"role": role, "users": {role: identity(user)}, "zones": zones, "seats": seats, "summary": summary}

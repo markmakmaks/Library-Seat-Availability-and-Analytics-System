@@ -1,0 +1,6 @@
+<nav class="flex flex-wrap gap-2 text-sm font-semibold">
+  <a href="{% url 'seats:admin-dashboard' %}" class="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200">&larr; Dashboard</a>
+  <a href="{% url 'seats:approvals' %}" class="px-3 py-1.5 rounded-lg {% if nav == 'approvals' %}bg-royal-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">Approvals</a>
+  <a href="{% url 'seats:users' %}" class="px-3 py-1.5 rounded-lg {% if nav == 'users' %}bg-royal-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">Users</a>
+  <a href="{% url 'seats:logs' %}" class="px-3 py-1.5 rounded-lg {% if nav == 'logs' %}bg-royal-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">Activity logs</a>
+</nav>

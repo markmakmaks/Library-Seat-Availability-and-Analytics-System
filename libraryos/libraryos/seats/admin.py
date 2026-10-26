@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Profile, Reservation, Seat, Zone
+from .models import AdminActionLog, Profile, Reservation, Seat, Zone
 
 
 @admin.register(Profile)
@@ -44,3 +44,10 @@ class ReservationAdmin(admin.ModelAdmin):
     list_display = ("seat", "user_name", "role", "status", "start_hour", "end_hour", "created_at")
     list_filter = ("status", "role")
     search_fields = ("user_name", "seat__seat_id", "title")
+
+
+@admin.register(AdminActionLog)
+class AdminActionLogAdmin(admin.ModelAdmin):
+    list_display = ("created_at", "admin_username", "action", "target_name")
+    list_filter = ("action",)
+    readonly_fields = [f.name for f in AdminActionLog._meta.fields]

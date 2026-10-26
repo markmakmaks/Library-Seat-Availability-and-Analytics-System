@@ -125,7 +125,7 @@ function setRoleUI(role) {
 
 function switchTab(role, tabName) {
   if (role === 'admin') {
-    ['overview', 'seatmap', 'reservations', 'analytics'].forEach(t => {
+    ['overview', 'seatmap', 'reservations', 'reserve', 'analytics'].forEach(t => {
       document.getElementById(`admin-panel-${t}`).classList.toggle('hidden', t !== tabName);
       const btn = document.getElementById(`admin-tab-${t}`);
       btn.className = t === tabName
@@ -311,7 +311,9 @@ function filterAdminReservations() {
 
 /* --------------------------------------------------------------- professor */
 function renderProfSeatMap() {
-  const container = document.getElementById('prof-seatmap-grid');
+  // professors and admins share the multi-select reservation grid
+  const isAdmin = currentRole === 'admin';
+  const container = document.getElementById(isAdmin ? 'admin-reserve-grid' : 'prof-seatmap-grid');
   container.innerHTML = '';
   ZONES.forEach(z => {
     const zSeats = seats.filter(s => s.zone === z.id);
@@ -345,7 +347,7 @@ function renderProfSeatMap() {
       </div>
     `;
   });
-  document.getElementById('prof-selected-count').innerText = selectedProfSeats.length;
+  document.getElementById(isAdmin ? 'admin-selected-count' : 'prof-selected-count').innerText = selectedProfSeats.length;
 }
 
 function toggleProfSeatSelection(seatId) {
@@ -389,6 +391,7 @@ async function confirmProfBatchBooking() {
 
 function renderProfSessions() {
   const container = document.getElementById('prof-sessions-container');
+  if (currentRole !== 'professor') return;
   const profSeats = seats.filter(s => s.role === 'professor' && s.mine);
   document.getElementById('prof-session-count').innerText = profSeats.length;
 

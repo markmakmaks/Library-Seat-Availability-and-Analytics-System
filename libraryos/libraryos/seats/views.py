@@ -13,7 +13,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from . import services
 from .forms import SignUpForm
-from .models import Profile
+from .models import AdminActionLog, Profile, Reservation
 from .services import BookingError
 
 POLL_INTERVAL_MS = 15000
@@ -170,11 +170,25 @@ def approvals(request):
         action = request.POST.get("action")
         if target.role != Profile.Role.ADMIN and action in ("approve", "reject"):
             approved = action == "approve"
+            was_approved = target.status == Profile.Status.APPROVED
             target.status = Profile.Status.APPROVED if approved else Profile.Status.REJECTED
             target.save(update_fields=["status"])
             target.user.is_active = approved
             target.user.save(update_fields=["is_active"])
-            messages.success(request, f"{target.full_name} was {'approved' if approved else 'rejected'}.")
+            if approved:
+                log_action = AdminActionLog.Action.APPROVED
+            elif was_approved:
+                log_action = AdminActionLog.Action.REVOKED
+            else:
+                log_action = AdminActionLog.Action.REJECTED
+            services.log_admin_action(
+                request.user,
+                log_action,
+                f"{target.full_name} ({target.user.username})",
+                f"{target.get_role_display()} account",
+                target_user=target.user,
+            )
+            messages.success(request, f"{target.full_name} was {log_action.label.lower()}.")
         return redirect("seats:approvals")
 
     accounts = Profile.objects.exclude(role=Profile.Role.ADMIN).select_related("user")
@@ -184,6 +198,34 @@ def approvals(request):
         "current_user": services.identity(request.user),
     }
     return render(request, "seats/auth/approvals.html", context)
+
+
+@_admin_only
+def users_list(request):
+    role = request.GET.get("role")
+    if role not in (Profile.Role.STUDENT, Profile.Role.PROFESSOR):
+        role = "all"
+    profiles = Profile.objects.exclude(role=Profile.Role.ADMIN).select_related("user").order_by("last_name", "first_name")
+    if role != "all":
+        profiles = profiles.filter(role=role)
+    context = {
+        "profiles": profiles,
+        "role_filter": role,
+        "current_user": services.identity(request.user),
+        "nav": "users",
+    }
+    return render(request, "seats/auth/users.html", context)
+
+
+@_admin_only
+def activity_logs(request):
+    tab = "seats" if request.GET.get("tab") == "seats" else "admin"
+    context = {"tab": tab, "current_user": services.identity(request.user), "nav": "logs"}
+    if tab == "seats":
+        context["reservations"] = Reservation.objects.select_related("seat__zone").order_by("-created_at")[:300]
+    else:
+        context["actions"] = AdminActionLog.objects.all()[:300]
+    return render(request, "seats/auth/activity_logs.html", context)
 
 
 # -------------------------------------------------------------------- pages
@@ -241,7 +283,7 @@ def reserve_seat(request, role, user, seat_id):
 
 @api_post
 def batch_reserve(request, role, user):
-    _require_role(role, "professor")
+    _require_role(role, "professor", "admin")
     data = _json_body(request)
     return services.batch_reserve_for_professor(
         user, data.get("seat_ids"), data.get("title"), data.get("duration"), data.get("start_hour")
@@ -256,7 +298,7 @@ def release_seat(request, role, user, seat_id):
 @api_post
 def toggle_maintenance(request, role, user, seat_id):
     _require_role(role, "admin")
-    return services.toggle_maintenance(seat_id)
+    return services.toggle_maintenance(user, seat_id)
 
 
 @api_post

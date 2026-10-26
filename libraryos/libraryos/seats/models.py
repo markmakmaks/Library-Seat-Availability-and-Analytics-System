@@ -76,6 +76,7 @@ class Reservation(models.Model):
     class Role(models.TextChoices):
         STUDENT = "student", "Student"
         PROFESSOR = "professor", "Professor"
+        ADMIN = "admin", "Admin"
 
     seat = models.ForeignKey(Seat, on_delete=models.CASCADE, related_name="reservations")
     user = models.ForeignKey(
@@ -180,3 +181,34 @@ class Profile(models.Model):
         if self.role == self.Role.PROFESSOR:
             return f"{self.department} Department • Professor ID: {self.id_number}"
         return "Main Campus Central Library High Authority"
+
+
+class AdminActionLog(models.Model):
+    """Audit trail of administrative actions: who did what, to whom, and when."""
+
+    class Action(models.TextChoices):
+        APPROVED = "approved", "Approved"
+        REVOKED = "revoked", "Revoked"
+        REJECTED = "rejected", "Rejected"
+        SEAT_RELEASED = "seat_released", "Seat released"
+        MAINTENANCE_ON = "maintenance_on", "Seat blocked for maintenance"
+        MAINTENANCE_OFF = "maintenance_off", "Seat back in service"
+        SEATS_RESERVED = "seats_reserved", "Seats reserved"
+
+    admin = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="admin_actions"
+    )
+    admin_username = models.CharField(max_length=150)
+    action = models.CharField(max_length=30, choices=Action.choices)
+    target_user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name="+"
+    )
+    target_name = models.CharField(max_length=200, help_text="Account name or seat the action was applied to")
+    details = models.CharField(max_length=250, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    def __str__(self):
+        return f"{self.admin_username} {self.action} {self.target_name}"

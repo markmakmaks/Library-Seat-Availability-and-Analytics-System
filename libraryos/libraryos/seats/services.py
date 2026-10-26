@@ -8,7 +8,7 @@ from django.db import IntegrityError, transaction
 from django.db.models import Count, Prefetch
 from django.utils import timezone
 
-from .models import OPEN_STATUSES, Reservation, Seat, Zone
+from .models import OPEN_STATUSES, AdminActionLog, Reservation, Seat, Zone
 
 STUDENT_DURATIONS = (1, 2, 3)
 PROFESSOR_DURATIONS = (2, 4, 6)
@@ -72,6 +72,17 @@ def _create_reservation(**fields):
         raise BookingError("That seat was just taken by someone else.", status=409, code="seat_taken")
 
 
+def log_admin_action(admin, action, target_name, details="", target_user=None):
+    AdminActionLog.objects.create(
+        admin=admin,
+        admin_username=admin.username,
+        action=action,
+        target_user=target_user,
+        target_name=target_name,
+        details=details,
+    )
+
+
 def _close(reservation):
     reservation.status = Status.RELEASED
     reservation.released_at = timezone.now()
@@ -133,17 +144,22 @@ def batch_reserve_for_professor(user, seat_ids, title, duration, start_hour=None
         raise BookingError(f"Unknown seat(s): {', '.join(sorted(missing))}.", status=404, code="not_found")
 
     start = _clean_start_hour(start_hour)
+    booker_role = Role.ADMIN if user.profile.role == "admin" else Role.PROFESSOR
     for seat in seats:  # all-or-nothing: any failure rolls the whole batch back
         _ensure_available(seat)
         _create_reservation(
             seat=seat,
             user=user,
             user_name=user.profile.full_name,
-            role=Role.PROFESSOR,
+            role=booker_role,
             title=title,
             start_hour=start,
             end_hour=start + duration,
             status=Status.RESERVED,
+        )
+    if booker_role == Role.ADMIN:
+        log_admin_action(
+            user, AdminActionLog.Action.SEATS_RESERVED, ", ".join(s.seat_id for s in seats), f"Session: {title}"
         )
     return f"Successfully created batch reservation for {len(seats)} seats!", "success"
 
@@ -165,19 +181,25 @@ def release_seat(role, user, seat_id):
 
     if reservation is not None:
         _close(reservation)
+    if role == "admin":
+        details = f"Reservation held by {reservation.user_name}" if reservation else "Maintenance block lifted"
+        log_admin_action(user, AdminActionLog.Action.SEAT_RELEASED, seat.seat_id, details)
     return f"Seat {seat.seat_id} has been released and is now available.", "info"
 
 
 @transaction.atomic
-def toggle_maintenance(seat_id):
+def toggle_maintenance(user, seat_id):
     seat = _lock_seat(seat_id)
     if seat.is_maintenance:
+        log_admin_action(user, AdminActionLog.Action.MAINTENANCE_OFF, seat.seat_id)
         seat.is_maintenance = False
         message = f"Seat {seat.seat_id} is back in service."
     else:
         reservation = seat.current_reservation
         if reservation is not None:
             _close(reservation)
+        details = f"Cancelled reservation of {reservation.user_name}" if reservation else ""
+        log_admin_action(user, AdminActionLog.Action.MAINTENANCE_ON, seat.seat_id, details)
         seat.is_maintenance = True
         message = f"Seat {seat.seat_id} has been blocked for maintenance."
     seat.save(update_fields=["is_maintenance"])

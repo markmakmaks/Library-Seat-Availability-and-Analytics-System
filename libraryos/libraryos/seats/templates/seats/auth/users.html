@@ -1,0 +1,45 @@
+{% extends "seats/base.html" %}
+{% block content %}
+  {% include "seats/auth/_shell_top.html" %}
+  <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-6 space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-xl font-bold text-navy-900">User directory</h1>
+        <p class="text-sm text-slate-500">Signed in as {{ current_user.name }} ({{ current_user.roleText }})</p>
+      </div>
+      {% include "seats/auth/_admin_nav.html" %}
+    </div>
+
+    <div class="inline-flex bg-slate-100 p-1 rounded-xl border border-slate-200 text-sm font-semibold">
+      <a href="?role=all" class="px-4 py-1.5 rounded-lg {% if role_filter == 'all' %}bg-royal-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-200/60{% endif %}">All</a>
+      <a href="?role=student" class="px-4 py-1.5 rounded-lg {% if role_filter == 'student' %}bg-royal-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-200/60{% endif %}">Students</a>
+      <a href="?role=professor" class="px-4 py-1.5 rounded-lg {% if role_filter == 'professor' %}bg-royal-600 text-white shadow-sm{% else %}text-slate-600 hover:bg-slate-200/60{% endif %}">Professors</a>
+    </div>
+
+    <section class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto">
+      <table class="w-full text-left text-sm">
+        <thead>
+          <tr class="bg-slate-100 text-slate-700 text-xs font-bold border-b border-slate-200">
+            <th class="p-3">NAME</th><th class="p-3">USERNAME</th><th class="p-3">ROLE</th>
+            <th class="p-3">ID</th><th class="p-3">COURSE / DEPARTMENT</th><th class="p-3">STATUS</th><th class="p-3">REGISTERED</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for p in profiles %}
+            <tr>
+              <td class="p-3 font-medium text-slate-800">{{ p.full_name }}<div class="text-xs text-slate-400 font-normal">{{ p.user.email }}</div></td>
+              <td class="p-3 text-slate-600">{{ p.user.username }}</td>
+              <td class="p-3 text-slate-600">{{ p.get_role_display }}</td>
+              <td class="p-3 text-slate-600">{{ p.id_number }}</td>
+              <td class="p-3 text-slate-600">{% if p.role == "student" %}{{ p.course }} &bull; {{ p.year_level }}{% else %}{{ p.department }}{% endif %}</td>
+              <td class="p-3 text-xs font-bold {% if p.status == 'approved' %}text-emerald-700{% elif p.status == 'pending' %}text-amber-700{% else %}text-rose-700{% endif %}">{{ p.get_status_display }}</td>
+              <td class="p-3 text-slate-500 whitespace-nowrap">{{ p.created_at|date:"M j, Y H:i" }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" class="p-6 text-center text-slate-500">No accounts found.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+{% endblock %}

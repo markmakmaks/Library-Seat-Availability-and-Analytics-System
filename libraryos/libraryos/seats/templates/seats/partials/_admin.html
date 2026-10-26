@@ -11,6 +11,9 @@
         <button onclick="switchTab('admin', 'reservations')" id="admin-tab-reservations" class="pb-3 text-slate-500 hover:text-slate-700 flex items-center space-x-2 whitespace-nowrap">
           <i class="fa-solid fa-list-check"></i><span>Reservation Records</span>
         </button>
+        <button onclick="switchTab('admin', 'reserve')" id="admin-tab-reserve" class="pb-3 text-slate-500 hover:text-slate-700 flex items-center space-x-2 whitespace-nowrap">
+          <i class="fa-solid fa-layer-group"></i><span>Multi-Seat Reservation</span>
+        </button>
         <button onclick="switchTab('admin', 'analytics')" id="admin-tab-analytics" class="pb-3 text-slate-500 hover:text-slate-700 flex items-center space-x-2 whitespace-nowrap">
           <i class="fa-solid fa-chart-line"></i><span>Advanced Analytics</span>
         </button>
@@ -166,6 +169,18 @@
             </table>
           </div>
         </div>
+      </div>
+
+      <!-- Admin Tab: Multi-Seat Reservation (same privilege as professors) -->
+      <div id="admin-panel-reserve" class="hidden space-y-4">
+        <div class="bg-sky-50 border border-sky-200 p-3.5 rounded-xl text-xs text-sky-900 flex flex-wrap items-center justify-between gap-2">
+          <span><i class="fa-solid fa-info-circle text-royal-600 mr-1"></i>Select several green seats, then batch reserve them. Admins have no single-reservation limit.</span>
+          <div class="flex items-center space-x-3">
+            <button onclick="clearProfSelections()" class="font-semibold text-royal-600 hover:underline">Clear Selection</button>
+            <button onclick="openBatchModal()" class="bg-royal-600 hover:bg-royal-700 text-white font-bold px-3 py-1.5 rounded-lg">Batch Reserve (<span id="admin-selected-count">0</span>)</button>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="admin-reserve-grid"></div>
       </div>
 
       <!-- Admin Tab 4: Analytics -->

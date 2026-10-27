@@ -28,7 +28,7 @@
               <tr>
                 <td class="p-3 text-slate-500 whitespace-nowrap">{{ a.created_at|date:"M j, Y H:i:s" }}</td>
                 <td class="p-3 font-medium text-slate-800">{{ a.admin_username }}</td>
-                <td class="p-3 text-xs font-bold {% if a.action == 'approved' or a.action == 'maintenance_off' %}text-emerald-700{% elif a.action == 'revoked' or a.action == 'rejected' %}text-rose-700{% else %}text-slate-700{% endif %}">{{ a.get_action_display }}</td>
+                <td class="p-3 text-xs font-bold {% if a.action == 'approved' or a.action == 'maintenance_off' or a.action == 'reservation_accepted' or a.action == 'time_in_verified' %}text-emerald-700{% elif a.action == 'revoked' or a.action == 'rejected' or a.action == 'reservation_rejected' or a.action == 'no_show_expired' %}text-rose-700{% else %}text-slate-700{% endif %}">{{ a.get_action_display }}</td>
                 <td class="p-3 text-slate-800">{{ a.target_name }}</td>
                 <td class="p-3 text-slate-500">{{ a.details }}</td>
               </tr>
@@ -42,7 +42,7 @@
           <thead>
             <tr class="bg-slate-100 text-slate-700 text-xs font-bold border-b border-slate-200">
               <th class="p-3">SEAT</th><th class="p-3">RESERVED BY</th><th class="p-3">ROLE</th>
-              <th class="p-3">RESERVED AT</th><th class="p-3">ENDED AT</th><th class="p-3">STATUS</th>
+              <th class="p-3">CODE</th><th class="p-3">RESERVED AT</th><th class="p-3">CHECKED IN</th><th class="p-3">ENDED AT</th><th class="p-3">STATUS</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100">
@@ -51,12 +51,14 @@
                 <td class="p-3 font-bold text-navy-900">{{ r.seat.seat_id }} <span class="text-slate-400 font-normal">({{ r.seat.zone.code }})</span></td>
                 <td class="p-3 text-slate-800">{{ r.user_name }}</td>
                 <td class="p-3 text-slate-600">{{ r.get_role_display }}</td>
+                <td class="p-3 font-mono text-xs text-slate-600">{{ r.confirmation_code|default:"&mdash;" }}</td>
                 <td class="p-3 text-slate-500 whitespace-nowrap">{{ r.created_at|date:"M j, Y H:i:s" }}</td>
+                <td class="p-3 text-slate-500 whitespace-nowrap">{% if r.checked_in_at %}{{ r.checked_in_at|date:"M j, Y H:i:s" }}{% else %}&mdash;{% endif %}</td>
                 <td class="p-3 text-slate-500 whitespace-nowrap">{% if r.released_at %}{{ r.released_at|date:"M j, Y H:i:s" }}{% else %}&mdash;{% endif %}</td>
-                <td class="p-3 text-xs font-bold {% if r.status == 'released' %}text-slate-600{% elif r.status == 'expired' %}text-rose-700{% elif r.status == 'active' %}text-emerald-700{% else %}text-amber-700{% endif %}">{% if r.status == "released" %}Completed{% else %}{{ r.get_status_display }}{% endif %}</td>
+                <td class="p-3 text-xs font-bold {% if r.status == 'released' %}text-slate-600{% elif r.status == 'expired' or r.status == 'rejected' %}text-rose-700{% elif r.status == 'active' %}text-emerald-700{% else %}text-amber-700{% endif %}">{% if r.end_reason %}{{ r.get_end_reason_display }}{% else %}{{ r.get_status_display }}{% endif %}</td>
               </tr>
             {% empty %}
-              <tr><td colspan="6" class="p-6 text-center text-slate-500">No reservations recorded yet.</td></tr>
+              <tr><td colspan="8" class="p-6 text-center text-slate-500">No reservations recorded yet.</td></tr>
             {% endfor %}
           </tbody>
         </table>

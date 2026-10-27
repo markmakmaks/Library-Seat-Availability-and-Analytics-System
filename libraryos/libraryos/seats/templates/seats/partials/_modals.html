@@ -35,7 +35,7 @@
     <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-5">
       <div class="flex justify-between items-start border-b border-slate-100 pb-3">
         <div>
-          <span class="text-[10px] font-bold text-royal-600 bg-sky-100 px-2 py-0.5 rounded uppercase">Reserve Seat</span>
+          <span class="text-[10px] font-bold text-royal-600 bg-sky-100 px-2 py-0.5 rounded uppercase">Request Seat</span>
           <h3 id="modal-seat-title" class="font-bold text-lg text-navy-900">Seat A11</h3>
         </div>
         <button onclick="closeModal('modal-student-reserve')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
@@ -62,7 +62,7 @@
       </div>
       <div class="pt-2 flex space-x-3">
         <button onclick="closeModal('modal-student-reserve')" class="flex-1 bg-slate-100 text-slate-600 font-semibold py-2 rounded-xl text-xs hover:bg-slate-200">Cancel</button>
-        <button onclick="confirmStudentBooking()" class="flex-1 bg-royal-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-royal-700 shadow-md">Confirm Reservation</button>
+        <button onclick="confirmStudentBooking()" class="flex-1 bg-royal-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-royal-700 shadow-md">Send Reservation Request</button>
       </div>
     </div>
   </div>
@@ -99,27 +99,7 @@
       </div>
       <div class="pt-2 flex space-x-3">
         <button onclick="closeModal('modal-prof-batch')" class="flex-1 bg-slate-100 text-slate-600 font-semibold py-2 rounded-xl text-xs hover:bg-slate-200">Cancel</button>
-        <button onclick="confirmProfBatchBooking()" class="flex-1 bg-royal-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-royal-700 shadow-md">Create Batch Reservation</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal 4: Simulated QR Code Check-In -->
-  <div id="modal-qr-checkin" class="fixed inset-0 bg-navy-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-4 text-center">
-      <h3 class="font-bold text-navy-900 text-base">Scan QR at Seat Desk</h3>
-      <p class="text-xs text-slate-500">Align your camera or tap simulated scan to verify physical presence at your reserved desk.</p>
-      <div class="bg-slate-900 p-4 rounded-2xl mx-auto w-48 h-48 flex flex-col items-center justify-center text-white relative overflow-hidden group">
-        <i class="fa-solid fa-qrcode text-8xl text-sky-400 opacity-90"></i>
-        <div class="absolute inset-x-0 top-0 h-1 bg-sky-400 shadow-[0_0_15px_#38bdf8] animate-pulse"></div>
-      </div>
-      <p class="text-[11px] text-slate-400">Seat Sensor ID: <span class="font-mono text-slate-700">QR-LIB-2026-ACTIVE</span></p>
-      <div class="flex flex-col space-y-2">
-        <button onclick="executeQRCheckIn()" class="w-full bg-emerald-600 text-white font-bold py-2.5 rounded-xl text-xs hover:bg-emerald-700 shadow-md flex items-center justify-center space-x-2">
-          <i class="fa-solid fa-circle-check"></i>
-          <span>Simulate Successful Scan Check-In</span>
-        </button>
-        <button onclick="closeModal('modal-qr-checkin')" class="text-xs text-slate-400 hover:text-slate-600 py-1">Cancel</button>
+        <button onclick="confirmProfBatchBooking()" class="flex-1 bg-royal-600 text-white font-bold py-2 rounded-xl text-xs hover:bg-royal-700 shadow-md">Send Batch Request</button>
       </div>
     </div>
   </div>

@@ -1,12 +1,15 @@
+import csv
 import json
 from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
+from django.utils.dateparse import parse_date
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_GET, require_POST
@@ -16,8 +19,9 @@ from .forms import SignUpForm
 from .models import AdminActionLog, Profile, Reservation
 from .services import BookingError
 
-POLL_INTERVAL_MS = 15000
+POLL_INTERVAL_MS = 4000
 SEAT_PLACEHOLDER = "__SEAT__"
+ID_PLACEHOLDER = "__ID__"
 
 DASHBOARD_URLS = {
     "admin": "seats:admin-dashboard",
@@ -228,6 +232,124 @@ def activity_logs(request):
     return render(request, "seats/auth/activity_logs.html", context)
 
 
+@_admin_only
+def analytics_csv(request):
+    a = services.get_seat_and_reservation_analytics()
+    response = HttpResponse(content_type="text/csv")
+    stamp = timezone.localtime().strftime("%Y%m%d-%H%M")
+    response["Content-Disposition"] = f'attachment; filename="libraryos-analytics-{stamp}.csv"'
+    w = csv.writer(response)
+
+    w.writerow(["LibraryOS analytics report", timezone.localtime().strftime("%Y-%m-%d %H:%M")])
+    w.writerow([])
+    w.writerow(["Seat occupancy", "Count", "% of total seats"])
+    w.writerow(["Total seats", a["seats"]["total"], ""])
+    for key, label in (("available", "Available"), ("pending", "Request pending approval"), ("occupied", "Occupied"),
+                       ("reserved", "Reserved"), ("maintenance", "Blocked")):
+        w.writerow([label, a["seats"][key]["count"], a["seats"][key]["pct"]])
+    w.writerow(["Occupied - walk-in (camera)", a["occupied"]["walkin"]["count"], a["occupied"]["walkin"]["pct"]])
+    w.writerow(["Occupied - reserved check-in", a["occupied"]["checkedIn"]["count"], a["occupied"]["checkedIn"]["pct"]])
+    w.writerow([])
+    w.writerow(["Zone", "Seats", "Occupied", "Occupied %", "Reserved", "Reserved %", "Available", "Available %"])
+    for z in a["zones"]:
+        w.writerow([z["name"], z["total"], z["occupied"]["count"], z["occupied"]["pct"], z["reserved"]["count"],
+                    z["reserved"]["pct"], z["available"]["count"], z["available"]["pct"]])
+    w.writerow([])
+    r = a["reservations"]
+    w.writerow(["Reservations", "Count", "% of all reservations"])
+    w.writerow(["Today", r["today"], ""])
+    w.writerow(["This week", r["week"], ""])
+    w.writerow(["All time", r["allTime"], ""])
+    for key, label in (("awaitingApproval", "Awaiting approval"), ("pending", "Accepted, waiting for check-in"),
+                       ("inSession", "In session"), ("completed", "Completed"),
+                       ("cancelled", "Cancelled before check-in"), ("expired", "Expired (no-show)"),
+                       ("rejected", "Rejected")):
+        w.writerow([label, r["status"][key]["count"], r["status"][key]["pct"]])
+    w.writerow(["Active rate", "", r["activeRate"]])
+    w.writerow(["Fulfillment rate (showed up)", "", r["fulfillmentRate"]])
+    w.writerow(["No-show / cancellation rate", "", r["noShowRate"]])
+    w.writerow([])
+    w.writerow(["Role", "Reservations", "% share"])
+    for role in a["roles"]:
+        w.writerow([role["label"], role["count"], role["pct"]])
+    w.writerow([])
+    w.writerow(["Hour", "Reservations made", "Check-ins / walk-ins"])
+    for hour in range(24):
+        w.writerow([f"{hour:02d}:00", a["hours"]["reservations"][hour], a["hours"]["occupancy"][hour]])
+    w.writerow([])
+    w.writerow(["Top seats", "Zone", "Sessions", "% of all sessions", "Minutes in use"])
+    for s in a["topSeats"]:
+        w.writerow([s["seat"], s["zone"], s["count"], s["pct"], s["minutes"]])
+    return response
+
+
+def _report_range(request):
+    """(start, end) dates from ?start=YYYY-MM-DD&end=YYYY-MM-DD; defaults to today. Raises BookingError."""
+    try:
+        start = parse_date(request.GET.get("start") or "") or timezone.localdate()
+        end = parse_date(request.GET.get("end") or "") or start
+    except ValueError:
+        raise BookingError("Dates must look like YYYY-MM-DD.", code="invalid_input")
+    return start, end
+
+
+@never_cache
+@require_GET
+def api_analytics(request):
+    profile = _profile(request.user)
+    if profile is None:
+        return JsonResponse({"ok": False, "error": "Please sign in.", "code": "unauthenticated"}, status=401)
+    if profile.role != Profile.Role.ADMIN:
+        return JsonResponse({"ok": False, "error": "Admins only.", "code": "forbidden"}, status=403)
+    try:
+        report = services.get_date_report(*_report_range(request))
+    except BookingError as exc:
+        return JsonResponse({"ok": False, "error": exc.message, "code": exc.code}, status=exc.status)
+    return JsonResponse({"ok": True, "report": report})
+
+
+@_admin_only
+def date_report_csv(request):
+    try:
+        r = services.get_date_report(*_report_range(request))
+    except BookingError as exc:
+        return HttpResponse(exc.message, status=exc.status, content_type="text/plain")
+    response = HttpResponse(content_type="text/csv")
+    label = r["start"] if r["start"] == r["end"] else f"{r['start']}_to_{r['end']}"
+    response["Content-Disposition"] = f'attachment; filename="libraryos-report-{label}.csv"'
+    w = csv.writer(response)
+    w.writerow(["LibraryOS analytics report", r["start"], r["end"]])
+    w.writerow([])
+    q = r["requests"]
+    w.writerow(["Reservation requests", "Count", "% of requests"])
+    w.writerow(["Total requested", q["total"], ""])
+    for key, name in (("awaitingApproval", "Still awaiting approval"), ("accepted", "Accepted"),
+                      ("verified", "Checked in (code verified)"), ("noShow", "No-show / expired (15-minute grace)"),
+                      ("forcedOrCancelled", "Force-released or cancelled"), ("forceReleased", "  of which force-released"),
+                      ("cancelled", "  of which cancelled"), ("rejected", "Rejected")):
+        w.writerow([name, q[key]["count"], q[key]["pct"]])
+    w.writerow([])
+    o = r["occupancy"]
+    w.writerow(["Occupancy", "Value"])
+    w.writerow(["Seats in the library", o["seatTotal"]])
+    w.writerow(["Seats occupied at some point", o["seatsUsed"]])
+    w.writerow(["Occupancy rate %", o["rate"]])
+    w.writerow(["Sessions", o["sessions"]])
+    w.writerow(["Walk-in sessions", o["walkin"]["sessions"], f"{o['walkin']['pct']}%"])
+    w.writerow(["Reserved sessions", o["reserved"]["sessions"], f"{o['reserved']['pct']}%"])
+    w.writerow(["Seats used by walk-ins", o["walkin"]["seats"], f"{o['walkin']['seatPct']}% of seats"])
+    w.writerow(["Seats used by reservations", o["reserved"]["seats"], f"{o['reserved']['seatPct']}% of seats"])
+    w.writerow([])
+    w.writerow(["Role", "Requests", "% share"])
+    for role in r["roles"]:
+        w.writerow([role["label"], role["count"], role["pct"]])
+    w.writerow([])
+    w.writerow(["Most used seats", "Zone", "Sessions", "% of sessions", "Minutes in use"])
+    for t in r["topSeats"]:
+        w.writerow([t["seat"], t["zone"], t["count"], t["pct"], t["minutes"]])
+    return response
+
+
 # -------------------------------------------------------------------- pages
 @ensure_csrf_cookie
 def dashboard(request, page_role):
@@ -244,13 +366,23 @@ def dashboard(request, page_role):
         "pollMs": POLL_INTERVAL_MS,
         "urls": {
             "state": reverse("seats:state"),
+            "live": reverse("seats:live"),
             "batchReserve": reverse("seats:batch-reserve"),
             "reserve": reverse("seats:reserve", args=[SEAT_PLACEHOLDER]),
             "release": reverse("seats:release", args=[SEAT_PLACEHOLDER]),
             "maintenance": reverse("seats:maintenance", args=[SEAT_PLACEHOLDER]),
-            "checkIn": reverse("seats:check-in", args=[SEAT_PLACEHOLDER]),
+            "accept": reverse("seats:accept", args=[ID_PLACEHOLDER]),
+            "reject": reverse("seats:reject", args=[ID_PLACEHOLDER]),
+            "cancel": reverse("seats:cancel", args=[ID_PLACEHOLDER]),
+            "verify": reverse("seats:verify"),
+            "notificationsRead": reverse("seats:notifications-read"),
+            "analytics": reverse("seats:analytics"),
+            "dateReportCsv": reverse("seats:date-report-csv"),
         },
         "seatPlaceholder": SEAT_PLACEHOLDER,
+        "idPlaceholder": ID_PLACEHOLDER,
+        "serverTime": timezone.now().isoformat(),
+        "serverDate": timezone.localdate().isoformat(),
     }
     context = {
         "role": role,
@@ -258,6 +390,7 @@ def dashboard(request, page_role):
         "zones": state["zones"],
         "kpis": state["summary"],
         "state": state,
+        "analytics": state.get("analytics"),
         "config": config,
         "pending_count": Profile.objects.filter(status=Profile.Status.PENDING).count() if role == "admin" else 0,
     }
@@ -272,6 +405,17 @@ def api_state(request):
     if profile is None:
         return JsonResponse({"ok": False, "error": "Please sign in.", "code": "unauthenticated"}, status=401)
     return JsonResponse({"ok": True, "state": services.build_state(profile.role, request.user)})
+
+
+@never_cache
+@require_GET
+def api_live(request):
+    """Lightweight poll target: current seat statuses + counts (camera changes show up here)."""
+    profile = _profile(request.user)
+    if profile is None:
+        return JsonResponse({"ok": False, "error": "Please sign in.", "code": "unauthenticated"}, status=401)
+    state = services.build_state(profile.role, request.user)
+    return JsonResponse({"ok": True, "state": state, "serverTime": timezone.now().isoformat()})
 
 
 @api_post
@@ -302,6 +446,30 @@ def toggle_maintenance(request, role, user, seat_id):
 
 
 @api_post
-def check_in(request, role, user, seat_id):
-    _require_role(role, "student")
-    return services.check_in(user, seat_id)
+def accept_reservation(request, role, user, reservation_id):
+    _require_role(role, "admin")
+    return services.accept_reservation(user, reservation_id)
+
+
+@api_post
+def reject_reservation(request, role, user, reservation_id):
+    _require_role(role, "admin")
+    return services.reject_reservation(user, reservation_id)
+
+
+@api_post
+def cancel_reservation(request, role, user, reservation_id):
+    return services.cancel_reservation(user, reservation_id)
+
+
+@api_post
+def verify_code(request, role, user):
+    _require_role(role, "admin")
+    return services.verify_confirmation_code(user, _json_body(request).get("code"))
+
+
+@api_post
+def notifications_read(request, role, user):
+    ids = _json_body(request).get("ids")
+    services.mark_notifications_read(user, ids if isinstance(ids, list) else None)
+    return "", "info"

@@ -1,7 +1,9 @@
 import random
+from datetime import timedelta
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone
 
 from django.contrib.auth.models import User
 from seats.models import Reservation, Seat, Zone
@@ -54,21 +56,32 @@ class Command(BaseCommand):
         student = student_user.profile.full_name if student_user else "Alex Martinez"
         professor = professor_user.profile.full_name if professor_user else "Dr. Patricia Hall"
         Status, Role = Reservation.Status, Reservation.Role
+        codes = iter(rng.sample(range(100000, 999999), 200))
+
+        def next_code():
+            return next(codes)
 
         def book(seat_id, user, role, status, start=None, end=None, title=""):
             owner = {student: student_user, professor: professor_user}.get(user)
+            now = timezone.now()
+            extra = {}
+            if status == Status.RESERVED:
+                extra = {"accepted_at": now, "grace_period_expires_at": now + timedelta(minutes=15)}
+            elif status == Status.ACTIVE:
+                extra = {"checked_in_at": now}
+            if status in (Status.RESERVED, Status.ACTIVE) and role != Role.ADMIN:
+                extra["confirmation_code"] = f"LIB-{next_code():06d}"
             Reservation.objects.create(
                 seat=seats[seat_id], user=owner, user_name=user, role=role, status=status,
-                start_hour=start, end_hour=end, title=title,
+                start_hour=start, end_hour=end, title=title, **extra,
             )
 
         # Demo data that mirrors the prototype
         book("A15", student, Role.STUDENT, Status.RESERVED, 11, 13)
         book("B12", professor, Role.PROFESSOR, Status.RESERVED, 14, 18, "CS101 Group Study")
         book("B13", professor, Role.PROFESSOR, Status.RESERVED, 14, 18, "CS101 Group Study")
-        book("C14", "Student #409", Role.STUDENT, Status.EXPIRED)  # no-show waiting for release
 
-        taken = {"A15", "B12", "B13", "C14"}
+        taken = {"A15", "B12", "B13"}
         for seat_id, seat in sorted(seats.items()):
             if seat.number % 5 == 0 and seat_id not in taken:
                 book(seat_id, f"Student #{rng.randint(100, 899)}", Role.STUDENT, Status.ACTIVE)

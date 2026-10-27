@@ -20,6 +20,7 @@
         <span id="current-time-display" class="font-mono font-medium">13:06:00</span>
       </div>
       <div class="flex items-center space-x-2 text-xs">
+        {% include "seats/partials/_notifications.html" %}
         {% if role == "admin" %}
           <a href="{% url 'seats:approvals' %}" class="bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg border border-white/10 font-semibold">
             <i class="fa-solid fa-user-check mr-1"></i>Account approvals{% if pending_count %} <span class="ml-1 bg-amber-400 text-navy-900 rounded-full px-1.5 py-0.5 font-bold">{{ pending_count }}</span>{% endif %}

@@ -5,3 +5,9 @@ body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e29
 .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
 .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
 .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+@media print {
+  header, nav, button, a[href], #toast-container { display: none !important; }
+  #admin-panel-analytics { display: block !important; }
+  #admin-panel-overview, #admin-panel-seatmap, #admin-panel-reservations, #admin-panel-reserve { display: none !important; }
+}

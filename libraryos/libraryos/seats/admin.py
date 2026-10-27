@@ -36,7 +36,7 @@ class SeatAdmin(admin.ModelAdmin):
     list_display = ("seat_id", "zone", "number", "features", "is_maintenance")
     list_filter = ("zone", "is_maintenance")
     search_fields = ("seat_id",)
-    readonly_fields = ("seat_id",)
+    readonly_fields = ("seat_id", "last_camera_check", "belongings_since", "belongings_flagged")
 
 
 @admin.register(Reservation)
